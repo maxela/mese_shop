@@ -2,26 +2,31 @@ mesecons_shop = {}
 mesecons_shop.current_shop = {}
 mesecons_shop.formspec = {
 	customer = function(pos)
+		local description = minetest.env:get_meta(pos):get_string("description")
 		local list_name = "nodemeta:"..pos.x..','..pos.y..','..pos.z
-		local formspec = "size[8,7.5]"..
-		"label[0,0;Customer gives (pay here!)]"..
+		local formspec = "size[8,8.5]"..
+		"label[0,0;Customer gives (pay here):]"..
 		"list[current_player;customer_gives;0,0.5;3,2;]"..
-		"label[5,0;Owner wants]"..
+		"label[5,0;Owner wants:]"..
 		"list["..list_name..";owner_wants;5,0.5;3,2;]"..
-		"list[current_player;main;0,3.5;8,4;]"..
-		"button[3,1;2,1;exchange;Exchange]"
+		"textarea[0.3,3;8,1.6;description;Description:;"..minetest.formspec_escape(description).."]"..
+		"list[current_player;main;0,4.7;8,4;]"..
+		"button_exit[3,1;2,1;activate;Activate]"
 		return formspec
 	end,
 	owner = function(pos)
+		local description = minetest.env:get_meta(pos):get_string("description")
 		local list_name = "nodemeta:"..pos.x..','..pos.y..','..pos.z
-		local formspec = "size[8,7.5]"..
+		local formspec = "size[8,8.5]"..
 		"label[0,0;Customers gave:]"..
 		"list["..list_name..";customers_gave;0,0.5;3,2;]"..
 		"label[5,0;You want:]"..
 		"list["..list_name..";owner_wants;5,0.5;3,2;]"..
-		"label[0,5;Owner, Use(E)+Place(RMB) for customer interface]"..
-		"list[current_player;main;0,3.5;8,4;]"..
-		"button[3,1;2,1;trigger;Trigger]"
+-- 		"label[0,5;Owner, Use(E)+Place(RMB) for customer interface]"..
+		"textarea[0.3,3;8,1.6;description;Description:;"..minetest.formspec_escape(description).."]"..
+		"list[current_player;main;0,4.7;8,4;]"..
+		"button[3,0.5;2,1;activate;Activate]"..
+		"button_exit[3,1.5;2,1;exit;OK]"
 		return formspec
 	end,
 }
@@ -60,6 +65,8 @@ local init_meseshop = function(pos, placer, itemstack)
 	local meta = minetest.env:get_meta(pos)
 	meta:set_string("infotext", "Mese shop (owned by "..owner..")")
 	meta:set_string("owner",owner)
+	meta:set_string("description","")
+	local inv = meta:get_inventory()
 	inv:set_size("customers_gave", 3*2)
 	inv:set_size("owner_wants", 3*2)
 end
@@ -70,9 +77,9 @@ local setup_use_meseshop = function(pos, node, clicker, itemstack)
 	mesecons_shop.current_shop[clicker:get_player_name()] = pos
 	local meta = minetest.env:get_meta(pos)
 	if clicker:get_player_name() == meta:get_string("owner") and not clicker:get_player_control().aux1 then
-		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:shop_formspec",mesecons_shop.formspec.owner(pos))
+		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:meseshop_formspec",mesecons_shop.formspec.owner(pos))
 	else
-		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:shop_formspec",mesecons_shop.formspec.customer(pos))
+		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:meseshop_formspec",mesecons_shop.formspec.customer(pos))
 	end
 end
 
@@ -82,22 +89,23 @@ local inventory_move = function(pos, from_list, from_index, to_list, to_index, c
 	return count
 end
 
-local inventory_put = function(pos, listname, index, stack, player)
+local inventory_put_take = function(pos, listname, index, stack, player)
 	local meta = minetest.env:get_meta(pos)
 	if player:get_player_name() ~= meta:get_string("owner") then return 0 end
 	return stack:get_count()
 end
 
-local inventory_take = function(pos, listname, index, stack, player)
-	local meta = minetest.env:get_meta(pos)
-	if player:get_player_name() ~= meta:get_string("owner") then return 0 end
-	return stack:get_count()
-end
+-- local inventory_take = function(pos, listname, index, stack, player)
+-- 	local meta = minetest.env:get_meta(pos)
+-- 	if player:get_player_name() ~= meta:get_string("owner") then return 0 end
+-- 	return stack:get_count()
+-- end
 
 local dig_rules = function(pos, player)
-	local meta = minetest.env:get_meta(pos)
-	local inv = meta:get_inventory()
-	return inv:is_empty("stock") and inv:is_empty("customers_gave") and inv:is_empty("owner_wants") and inv:is_empty("owner_gives")
+	local inv = minetest.env:get_meta(pos):get_inventory()
+-- 	local meta = minetest.env:get_meta(pos)
+-- 	local inv = meta:get_inventory()
+	return inv:is_empty("customers_gave") and inv:is_empty("owner_wants")
 end
 
 minetest.register_node("mesecons_shop:meseshop_off", {
@@ -119,8 +127,8 @@ minetest.register_node("mesecons_shop:meseshop_off", {
 	after_place_node = init_meseshop,
 	on_rightclick = setup_use_meseshop,
 	allow_metadata_inventory_move = inventory_move,
-	allow_metadata_inventory_put = inventory_put,
-	allow_metadata_inventory_take = inventory_take,
+	allow_metadata_inventory_put = inventory_put_take,
+	allow_metadata_inventory_take = inventory_put_take,
 	can_dig = dig_rules
 })
 
@@ -145,8 +153,8 @@ minetest.register_node("mesecons_shop:meseshop_on", {
 	after_place_node = init_meseshop,
 	on_rightclick = setup_use_meseshop,
 	allow_metadata_inventory_move = inventory_move,
-	allow_metadata_inventory_put = inventory_put,
-	allow_metadata_inventory_take = inventory_take,
+	allow_metadata_inventory_put = inventory_put_take,
+	allow_metadata_inventory_take = inventory_put_take,
 	can_dig = dig_rules
 })
 
@@ -169,45 +177,45 @@ end
 
 
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname == "mesecons_shop:shop_formspec" and (
-		(fields.exchange ~= nil and fields.exchange ~= "")
-		or
-		(fields.trigger ~= nil and fields.trigger ~= "")
-	)
-	then
+	if formname == "mesecons_shop:meseshop_formspec" then
 		local name = sender:get_player_name()
 		local pos = mesecons_shop.current_shop[name]
 		local meta = minetest.env:get_meta(pos)
-		if meta:get_string("owner") == name then
-			mesecon.meseshop_turnon(pos)
-		else
-			local minv = meta:get_inventory()
-			local pinv = sender:get_inventory()
-			local invlist_tostring = function(invlist)
-				local out = {}
-				for i, item in pairs(invlist) do
-					out[i] = item:to_string()
-				end
-				return out
-			end
-			local wants = minv:get_list("owner_wants")
-			if wants == nil then return end -- do not crash the server
-			-- Check if we can exchange
-			local can_exchange = true
-			for i, item in pairs(wants) do
-				if not pinv:contains_item("customer_gives",item) then
-					can_exchange = false
-				end
-			end
-			if can_exchange then
-				for i, item in pairs(wants) do
-					pinv:remove_item("customer_gives",item)
-					minv:add_item("customers_gave",item)
-				end
+		if fields.exit ~= nil and fields.exit ~= "" then
+			meta:set_string("description",fields.description)
+		end
+		if fields.activate ~= nil and fields.activate ~= "" then
+			if meta:get_string("owner") == name then
 				mesecon.meseshop_turnon(pos)
-				minetest.chat_send_player(name,"Payed!")
 			else
-				minetest.chat_send_player(name,"Payment can not be done, check if you put all items !")
+				local minv = meta:get_inventory()
+				local pinv = sender:get_inventory()
+				local invlist_tostring = function(invlist)
+					local out = {}
+					for i, item in pairs(invlist) do
+						out[i] = item:to_string()
+					end
+					return out
+				end
+				local wants = minv:get_list("owner_wants")
+				if wants == nil then return end -- do not crash the server
+				-- Check if we can activate
+				local can_activate = true
+				for i, item in pairs(wants) do
+					if not pinv:contains_item("customer_gives",item) then
+						can_activate = false
+					end
+				end
+				if can_activate then
+					for i, item in pairs(wants) do
+						pinv:remove_item("customer_gives",item)
+						minv:add_item("customers_gave",item)
+					end
+					mesecon.meseshop_turnon(pos)
+					minetest.chat_send_player(name,"Activated!")
+				else
+					minetest.chat_send_player(name,"Activation can not be done, check if you put all items!")
+				end
 			end
 		end
 	end
