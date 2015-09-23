@@ -9,13 +9,18 @@ mesecons_shop.formspec = {
 		"list[current_player;customer_gives;0,0.5;3,2;]"..
 		"label[5,0;Owner wants:]"..
 		"list["..list_name..";owner_wants;5,0.5;3,2;]"..
-		"textarea[0.3,3;8,1.6;description;Description:;"..minetest.formspec_escape(description).."]"..
-		"list[current_player;main;0,4.7;8,4;]"..
+		"label[0,3;Description:]"..
+		"label[0,3.5;"..minetest.formspec_escape(description).."]"..
+		"list[current_player;main;0,4.5;8,4;]"..
 		"button_exit[3,1;2,1;activate;Activate]"
 		return formspec
 	end,
 	owner = function(pos)
 		local description = minetest.env:get_meta(pos):get_string("description")
+		local duration = minetest.env:get_meta(pos):get_float("duration")
+		if duration == nil then 
+			duration = 1
+		end
 		local list_name = "nodemeta:"..pos.x..','..pos.y..','..pos.z
 		local formspec = "size[8,8.5]"..
 		"label[0,0;Customers gave:]"..
@@ -23,8 +28,9 @@ mesecons_shop.formspec = {
 		"label[5,0;You want:]"..
 		"list["..list_name..";owner_wants;5,0.5;3,2;]"..
 -- 		"label[0,5;Owner, Use(E)+Place(RMB) for customer interface]"..
-		"textarea[0.3,3;8,1.6;description;Description:;"..minetest.formspec_escape(description).."]"..
-		"list[current_player;main;0,4.7;8,4;]"..
+		"field[0.3,3.5;6.5,0.7;description;Description:;"..minetest.formspec_escape(description).."]"..
+		"field[6.8,3.5;1.5,0.7;duration;Duration:;"..tostring(duration).."]"..
+		"list[current_player;main;0,4.5;8,4;]"..
 		"button[3,0.5;2,1;activate;Activate]"..
 		"button_exit[3,1.5;2,1;exit;OK]"
 		return formspec
@@ -66,6 +72,7 @@ local init_meseshop = function(pos, placer, itemstack)
 	meta:set_string("infotext", "Mese shop (owned by "..owner..")")
 	meta:set_string("owner",owner)
 	meta:set_string("description","")
+	meta:set_float("duration",1.0)
 	local inv = meta:get_inventory()
 	inv:set_size("customers_gave", 3*2)
 	inv:set_size("owner_wants", 3*2)
@@ -95,16 +102,8 @@ local inventory_put_take = function(pos, listname, index, stack, player)
 	return stack:get_count()
 end
 
--- local inventory_take = function(pos, listname, index, stack, player)
--- 	local meta = minetest.env:get_meta(pos)
--- 	if player:get_player_name() ~= meta:get_string("owner") then return 0 end
--- 	return stack:get_count()
--- end
-
 local dig_rules = function(pos, player)
 	local inv = minetest.env:get_meta(pos):get_inventory()
--- 	local meta = minetest.env:get_meta(pos)
--- 	local inv = meta:get_inventory()
 	return inv:is_empty("customers_gave") and inv:is_empty("owner_wants")
 end
 
@@ -160,10 +159,11 @@ minetest.register_node("mesecons_shop:meseshop_on", {
 
 mesecon.meseshop_turnon = function (pos)
 	local node = minetest.get_node(pos)
+	local duration = minetest.env:get_meta(pos):get_float("duration")
 	minetest.swap_node(pos, {name = "mesecons_shop:meseshop_on", param2=node.param2})
 	mesecon.receptor_on(pos, mesecon.rules.alldirs)
 	minetest.sound_play("mesecons_button_push", {pos=pos})
-	minetest.after(5, mesecon.meseshop_turnoff, pos)
+	minetest.after(duration, mesecon.meseshop_turnoff, pos)
 end
 
 mesecon.meseshop_turnoff = function (pos)
@@ -183,9 +183,12 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 		local meta = minetest.env:get_meta(pos)
 		if fields.exit ~= nil and fields.exit ~= "" then
 			meta:set_string("description",fields.description)
+			meta:set_float("duration",fields.duration)
 		end
 		if fields.activate ~= nil and fields.activate ~= "" then
 			if meta:get_string("owner") == name then
+				meta:set_string("description",fields.description)
+				meta:set_float("duration",fields.duration)
 				mesecon.meseshop_turnon(pos)
 			else
 				local minv = meta:get_inventory()
