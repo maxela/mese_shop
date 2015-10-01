@@ -86,7 +86,7 @@ local setup_use_mese_shop = function(pos, node, clicker, itemstack)
 	if clicker:get_player_name() == meta:get_string("owner") and not clicker:get_player_control().aux1 then
 		minetest.show_formspec(clicker:get_player_name(),"mese_shop:mese_formspec",mese_shop.formspec.owner(pos))
 	else
-		minetest.show_formspec(clicker:get_player_name(),"mese_shop:meseshop_formspec",mese_shop.formspec.customer(pos))
+		minetest.show_formspec(clicker:get_player_name(),"mese_shop:mese_shop_formspec",mese_shop.formspec.customer(pos))
 	end
 end
 
@@ -123,8 +123,8 @@ minetest.register_node("mese_shop:mese_shop_off", {
 		state = mesecon.state.off,
 		rules = mesecon.rules.alldirs
 	}},
-	after_place_node = init_meseshop,
-	on_rightclick = setup_use_meseshop,
+	after_place_node = init_mese_shop,
+	on_rightclick = setup_use_mese_shop,
 	allow_metadata_inventory_move = inventory_move,
 	allow_metadata_inventory_put = inventory_put_take,
 	allow_metadata_inventory_take = inventory_put_take,
