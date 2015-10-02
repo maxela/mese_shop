@@ -1,6 +1,6 @@
-mesecons_shop = {}
-mesecons_shop.current_shop = {}
-mesecons_shop.formspec = {
+mese_shop = {}
+mese_shop.current_shop = {}
+mese_shop.formspec = {
 	customer = function(pos)
 		local description = minetest.env:get_meta(pos):get_string("description")
 		local list_name = "nodemeta:"..pos.x..','..pos.y..','..pos.z
@@ -37,7 +37,7 @@ mesecons_shop.formspec = {
 	end,
 }
 
-mesecons_shop.check_privilege = function(listname,playername,meta)
+mese_shop.check_privilege = function(listname,playername,meta)
 	--[[if listname == "pl1" then
 		if playername ~= meta:get_string("pl1") then
 			return false
@@ -56,7 +56,7 @@ mesecons_shop.check_privilege = function(listname,playername,meta)
 end
 
 
-mesecons_shop.give_inventory = function(inv,list,playername)
+mese_shop.give_inventory = function(inv,list,playername)
 	player = minetest.env:get_player_by_name(playername)
 	if player then
 		for k,v in ipairs(inv:get_list(list)) do
@@ -66,10 +66,10 @@ mesecons_shop.give_inventory = function(inv,list,playername)
 	end
 end
 
-local init_meseshop = function(pos, placer, itemstack)
+local init_mese_shop = function(pos, placer, itemstack)
 	local owner = placer:get_player_name()
 	local meta = minetest.env:get_meta(pos)
-	meta:set_string("infotext", "Mese shop (owned by "..owner..")")
+	meta:set_string("infotext", "Mese Shop (owned by "..owner..")")
 	meta:set_string("owner",owner)
 	meta:set_string("description","")
 	meta:set_float("duration",1.0)
@@ -78,15 +78,15 @@ local init_meseshop = function(pos, placer, itemstack)
 	inv:set_size("owner_wants", 3*2)
 end
 
-local setup_use_meseshop = function(pos, node, clicker, itemstack)
+local setup_use_mese_shop = function(pos, node, clicker, itemstack)
 	clicker:get_inventory():set_size("customer_gives", 3*2)
 	clicker:get_inventory():set_size("customer_gets", 3*2)
-	mesecons_shop.current_shop[clicker:get_player_name()] = pos
+	mese_shop.current_shop[clicker:get_player_name()] = pos
 	local meta = minetest.env:get_meta(pos)
 	if clicker:get_player_name() == meta:get_string("owner") and not clicker:get_player_control().aux1 then
-		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:meseshop_formspec",mesecons_shop.formspec.owner(pos))
+		minetest.show_formspec(clicker:get_player_name(),"mese_shop:mese_formspec",mese_shop.formspec.owner(pos))
 	else
-		minetest.show_formspec(clicker:get_player_name(),"mesecons_shop:meseshop_formspec",mesecons_shop.formspec.customer(pos))
+		minetest.show_formspec(clicker:get_player_name(),"mese_shop:mese_shop_formspec",mese_shop.formspec.customer(pos))
 	end
 end
 
@@ -107,8 +107,8 @@ local dig_rules = function(pos, player)
 	return inv:is_empty("customers_gave") and inv:is_empty("owner_wants")
 end
 
-minetest.register_node("mesecons_shop:meseshop_off", {
-	description = "Mesecon Shop",
+minetest.register_node("mese_shop:mese_shop_off", {
+	description = "Mese Shop",
 	paramtype2 = "facedir",
 	tiles = {"meseshop_top.png",
 	                "meseshop_top.png",
@@ -123,15 +123,15 @@ minetest.register_node("mesecons_shop:meseshop_off", {
 		state = mesecon.state.off,
 		rules = mesecon.rules.alldirs
 	}},
-	after_place_node = init_meseshop,
-	on_rightclick = setup_use_meseshop,
+	after_place_node = init_mese_shop,
+	on_rightclick = setup_use_mese_shop,
 	allow_metadata_inventory_move = inventory_move,
 	allow_metadata_inventory_put = inventory_put_take,
 	allow_metadata_inventory_take = inventory_put_take,
 	can_dig = dig_rules
 })
 
-minetest.register_node("mesecons_shop:meseshop_on", {
+minetest.register_node("mese_shop:mese_shop_on", {
 	description = "Mesecon Shop",
 	paramtype2 = "facedir",
 	tiles = {"meseshop_top.png",
@@ -141,7 +141,7 @@ minetest.register_node("mesecons_shop:meseshop_on", {
 			"meseshop_side.png",
 			"meseshop_front_on.png"},
 	groups = {choppy=2,oddly_breakable_by_hand=2,not_in_creative_inventory=1},
-	drop = 'mesecons_shop:meseshop_off',
+	drop = 'mese_shop:mese_shop_off',
 	light_source = default.LIGHT_MAX-7,
 	sunlight_propagates = true,
 	sounds = default.node_sound_wood_defaults(),
@@ -149,27 +149,27 @@ minetest.register_node("mesecons_shop:meseshop_on", {
 		state = mesecon.state.on,
 		rules = mesecon.rules.alldirs
 	}},
-	after_place_node = init_meseshop,
-	on_rightclick = setup_use_meseshop,
+	after_place_node = init_mese_shop,
+	on_rightclick = setup_use_mese_shop,
 	allow_metadata_inventory_move = inventory_move,
 	allow_metadata_inventory_put = inventory_put_take,
 	allow_metadata_inventory_take = inventory_put_take,
 	can_dig = dig_rules
 })
 
-mesecon.meseshop_turnon = function (pos)
+mesecon.mese_shop_turnon = function (pos)
 	local node = minetest.get_node(pos)
 	local duration = minetest.env:get_meta(pos):get_float("duration")
-	minetest.swap_node(pos, {name = "mesecons_shop:meseshop_on", param2=node.param2})
+	minetest.swap_node(pos, {name = "mese_shop:mese_shop_on", param2=node.param2})
 	mesecon.receptor_on(pos, mesecon.rules.alldirs)
 	minetest.sound_play("mesecons_button_push", {pos=pos})
-	minetest.after(duration, mesecon.meseshop_turnoff, pos)
+	minetest.after(duration, mesecon.mese_shop_turnoff, pos)
 end
 
-mesecon.meseshop_turnoff = function (pos)
+mesecon.mese_shop_turnoff = function (pos)
 	local node = minetest.get_node(pos)
-	if node.name=="mesecons_shop:meseshop_on" then --has not been dug
-		minetest.swap_node(pos, {name = "mesecons_shop:meseshop_off", param2=node.param2})
+	if node.name=="mese_shop:mese_shop_on" then --has not been dug
+		minetest.swap_node(pos, {name = "mese_shop:mese_shop_off", param2=node.param2})
 		minetest.sound_play("mesecons_button_pop", {pos=pos})
 		mesecon.receptor_off(pos, mesecon.rules.alldirs)
 	end
@@ -177,9 +177,9 @@ end
 
 
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname == "mesecons_shop:meseshop_formspec" then
+	if formname == "mese_shop:mese_shop_formspec" then
 		local name = sender:get_player_name()
-		local pos = mesecons_shop.current_shop[name]
+		local pos = mese_shop.current_shop[name]
 		local meta = minetest.env:get_meta(pos)
 		if fields.exit ~= nil and fields.exit ~= "" then
 			meta:set_string("description",fields.description)
@@ -189,7 +189,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 			if meta:get_string("owner") == name then
 				meta:set_string("description",fields.description)
 				meta:set_float("duration",fields.duration)
-				mesecon.meseshop_turnon(pos)
+				mesecon.mese_shop_turnon(pos)
 			else
 				local minv = meta:get_inventory()
 				local pinv = sender:get_inventory()
@@ -214,7 +214,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 						pinv:remove_item("customer_gives",item)
 						minv:add_item("customers_gave",item)
 					end
-					mesecon.meseshop_turnon(pos)
+					mesecon.mese_shop_turnon(pos)
 					minetest.chat_send_player(name,"Activated!")
 				else
 					minetest.chat_send_player(name,"Activation can not be done, check if you put all items!")
@@ -225,7 +225,7 @@ minetest.register_on_player_receive_fields(function(sender, formname, fields)
 end)
 
 minetest.register_craft({
-	output = 'mesecons_shop:meseshop_off',
+	output = 'mese_shop:mese_shop_off',
 	recipe = {
 		{'group:mesecon_conductor_craftable'},
 		{'currency:shop'}
