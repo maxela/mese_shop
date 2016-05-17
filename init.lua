@@ -177,7 +177,7 @@ end
 
 
 minetest.register_on_player_receive_fields(function(sender, formname, fields)
-	if formname == "mese_shop:mese_shop_formspec" then
+	if formname == "mese_shop:mese_formspec" then
 		local name = sender:get_player_name()
 		local pos = mese_shop.current_shop[name]
 		local meta = minetest.env:get_meta(pos)
